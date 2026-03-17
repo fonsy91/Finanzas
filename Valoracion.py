@@ -34,7 +34,6 @@ sector_usuario = input("\nIntroduce el número del sector (1-12): ")
 # -------------------------------------------------
 excel_file = "/Users/alfonsomunoz/Desktop/Programacion/Finanzas/Excel_Financiero/Fresh_del_Monte/summary.xlsx"
 
-
 # -------------------------------------------------
 # 3️⃣ LEER EXCEL Y EXTRAER FILAS NECESARIAS
 # -------------------------------------------------
