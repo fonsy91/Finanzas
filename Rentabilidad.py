@@ -5,7 +5,7 @@ import numpy as np
 # -------------------------------------------------
 # 0️⃣  RUTA DEL EXCEL
 # -------------------------------------------------
-excel_file = "/Users/alfonsomunoz/Desktop/Programacion/Python/Finanzas/Excel_Financiero/Fresh_del_Monte/summary.xlsx"
+excel_file = "/Users/alfonsomunoz/Desktop/Programacion/Finanzas/Excel_Financiero/Fresh_del_Monte/summary.xlsx"
 
 # -------------------------------------------------
 # 1️⃣ EXTRACCIÓN DE DATOS DEL EXCEL (MATERIA PRIMA)
