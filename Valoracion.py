@@ -1,5 +1,6 @@
 import pandas as pd
 import yfinance as yf
+import os
 
 # Ejecucion: python3 <nombre_archivo>
 
@@ -33,11 +34,25 @@ sector_usuario = input("\nIntroduce el número del sector (1-12): ")
 # 2️⃣ RUTA DEL EXCEL
 # -------------------------------------------------
 excel_file = "/Users/alfonsomunoz/Desktop/Programacion/Finanzas/Excel_Financiero/Fresh_del_Monte/summary.xlsx"
+#excel_file = "/Users/alfonsomunoz/Desktop/Programacion/Finanzas/Excel_Financiero/Bungle_Global/summary.xls"
 
 # -------------------------------------------------
 # 3️⃣ LEER EXCEL Y EXTRAER FILAS NECESARIAS
 # -------------------------------------------------
-df = pd.read_excel(excel_file)
+extension = os.path.splitext(excel_file)[1].lower()
+
+try:
+    if extension == '.xlsx':
+        # Para archivos modernos
+        df = pd.read_excel(excel_file, engine='openpyxl')
+    else:
+        # Para archivos antiguos de Morningstar (.xls)
+        df = pd.read_excel(excel_file, engine='xlrd')
+    print(f"✅ Archivo {extension} cargado correctamente.")
+except Exception as e:
+    print(f"❌ Error al cargar el Excel: {e}")
+    # Intento desesperado sin motor específico por si acaso
+    df = pd.read_excel(excel_file)
 
 # Filas necesarias para 1.2.1 Valoración utilizando el ratio PER o P/E (precio de una acción).
 # EPS Diluted
@@ -110,22 +125,61 @@ precio_actual = hist["Close"].iloc[-1]
 # 5️⃣ CALCULAR FCF POR ACCIÓN
 # -------------------------------------------------
 fcf_per_share = {}
-eps_per_share = {} # Para que el PER funcione
+eps_per_share = {}
+bvps_per_share = {}
+sales_per_share = {}
+ev_ebit_by_year = {}
 
-for year in fcf_dict:
-    if year in shares_dict:
-        # ARREGLO DE ESCALA: Dividimos por 10^15 para limpiar los ceros del Excel
-        acciones_reales = shares_dict[year] / 1_000_000_000_000_000
-        # Multiplicamos por 1M para tener el número total de acciones (ej: 48,000,000)
-        n_acciones = acciones_reales * 1_000_000
-        
-        fcf_per_share[year] = fcf_dict[year] / n_acciones
-        if year in eps_dict:
-            eps_per_share[year] = eps_dict[year] / n_acciones
+for year in shares_dict:
+    # --- LIMPIEZA DE ACCIONES (Basura e+17) ---
+    n_raw = shares_dict[year]
+    if n_raw > 1_000_000_000_000: 
+        n_acciones = n_raw / 1_000_000_000_000_000 
+    elif n_raw < 10000:
+        n_acciones = n_raw * 1_000_000 
+    else:
+        n_acciones = n_raw
 
-# Valores actuales (mantenemos tus nombres originales)
-eps_actual = list(eps_per_share.values())[-1]
-fcf_actual = list(fcf_per_share.values())[-1]
+    if n_acciones == 0: continue
+
+    # 1. EPS
+    if year in eps_dict:
+        eps_per_share[year] = eps_dict[year]
+
+    # 2. Ratios por acción (Normalizados)
+    n_divisor = n_acciones if n_acciones > 1000 else n_acciones * 1_000_000
+    
+    if year in fcf_dict:
+        fcf_per_share[year] = fcf_dict[year] / n_divisor
+    if year in revenue_dict:
+        sales_per_share[year] = revenue_dict[year] / n_divisor
+    if year in assets_dict and year in liabilities_dict:
+        bvps_per_share[year] = (assets_dict[year] - liabilities_dict[year]) / n_divisor
+
+    # 3. EV/EBIT
+    if year in debt_dict and year in cash_dict and year in price_by_year:
+        cap_mercado = price_by_year[year] * n_divisor
+        deuda_neta = debt_dict[year] - cash_dict[year]
+        ev = cap_mercado + deuda_neta
+        if ebit_dict.get(year, 0) > 0:
+            ev_ebit_by_year[year] = ev / ebit_dict[year]
+
+# --- VARIABLES GLOBALES (Lógica Inteligente) ---
+ultimo_k = max(shares_dict.keys())
+
+# EPS, BVPS y Ventas usamos el último (suelen ser estables)
+eps_actual = eps_per_share.get(ultimo_k, 0)
+bvps_actual = bvps_per_share.get(ultimo_k, 0)
+sales_actual = sales_per_share.get(ultimo_k, 0)
+ebit_actual = ebit_dict.get(ultimo_k, 0)
+deuda_neta_actual = debt_dict.get(ultimo_k, 0) - cash_dict.get(ultimo_k, 0)
+
+# FCF ACTUAL: Si es negativo, usamos la media de los años positivos
+if fcf_per_share.get(ultimo_k, 0) <= 0:
+    fcf_pos = [v for v in fcf_per_share.values() if v > 0]
+    fcf_actual = sum(fcf_pos) / len(fcf_pos) if fcf_pos else 0
+else:
+    fcf_actual = fcf_per_share.get(ultimo_k, 0)
 
 # -------------------------------------------------
 # 5️⃣.2️⃣ CÁLCULO ESPECÍFICO PARA PB (VALOR CONTABLE)
