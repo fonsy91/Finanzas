@@ -3,6 +3,7 @@ import yfinance as yf
 import os
 
 # Ejecucion: python3 <nombre_archivo>
+# Acepta archivos tanto xls como xlsx
 
 # -------------------------------------------------
 # 1️⃣ PEDIR TICKER AL USUARIO

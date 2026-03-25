@@ -3,6 +3,8 @@ import yfinance as yf
 import numpy as np
 import os
 
+# Acepta archivos tanto xls como xlsx
+
 # -------------------------------------------------
 # 0️⃣  RUTA DEL EXCEL (SELECTOR INTELIGENTE)
 # -------------------------------------------------
